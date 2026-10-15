@@ -23,12 +23,55 @@ Requer Linux com `ping`, `iw`, `mtr` e `speedtest-cli` (comando `speedtest`) e P
 
 ## Uso
 
+Rodar à mão, em primeiro plano:
+
 ```sh
 python3 monitor.py   # coleta a cada 60 s e grava em monitor.db
 python3 report.py    # imprime o resumo e gera relatorio.html e samples.csv
 ```
 
-O monitor deve rodar por dias, com o computador ligado e sem suspender, para a evidência ser relevante.
+Rodar como serviço systemd de usuário (recomendado). O serviço usa `systemd-inhibit` para o computador não suspender enquanto mede. O caminho em `WorkingDirectory` de `fuck-provider.service` aponta para `~/Documentos/Coding/fuck-provider`; ajuste se o projeto estiver em outro lugar.
+
+```sh
+# Instalar e iniciar (uma vez)
+mkdir -p ~/.config/systemd/user
+cp fuck-provider.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now fuck-provider
+
+# Acompanhar
+systemctl --user status fuck-provider      # estado do serviço
+journalctl --user -u fuck-provider -f      # logs ao vivo
+sqlite3 monitor.db "select count(distinct ts) from samples"   # ciclos coletados
+
+# Gerar o relatório para a denúncia
+python3 report.py
+
+# Controlar
+systemctl --user restart fuck-provider     # depois de editar o config.toml
+systemctl --user stop fuck-provider        # parar a coleta
+systemctl --user disable --now fuck-provider   # parar e não iniciar mais
+
+# Opcional: manter o serviço rodando mesmo sem sessão de usuário aberta
+loginctl enable-linger "$USER"
+```
+
+Testes:
+
+```sh
+python3 -m unittest test_monitor test_report
+```
+
+O monitor deve rodar por dias, com o computador ligado, na tomada e sem suspender, para a evidência ser relevante.
+
+## Denúncia à Anatel
+
+1. Abra reclamação na operadora e guarde o número do **protocolo**.
+2. Rode `python3 report.py` e anexe `relatorio.html` e `samples.csv`.
+3. Complemente com medições do SIMET ([simet.nic.br](https://simet.nic.br/)).
+4. Registre a reclamação na Anatel: telefone **1331**, app Anatel Consumidor ou site, com login gov.br.
+
+Os limites de latência (80 ms), jitter (40 ms) e perda (2%) usados em `report.py` vêm de fontes secundárias e não foram confirmados no texto oficial da Resolução 717/2019. Confirme antes de citá-los.
 
 ## Desenvolvimento
 
