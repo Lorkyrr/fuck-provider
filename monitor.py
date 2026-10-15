@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Coleta contínua de qualidade da internet (ping/jitter/perda/Wi-Fi/speedtest/quedas) em SQLite."""
+
 import json
 import re
 import socket
@@ -7,9 +8,10 @@ import sqlite3
 import subprocess
 import sys
 import time
-import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
+
+import tomllib
 
 HERE = Path(__file__).parent
 DNS_PROBES = ["example.com", "wikipedia.org", "gov.br", "globo.com", "cloudflare.com"]
@@ -39,8 +41,13 @@ def now_utc():
 def parse_ping(out):
     loss = re.search(r"([\d.]+)% packet loss", out)
     rtt = re.search(r"= ([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+) ms", out)
-    r = {"loss": float(loss.group(1)) if loss else 100.0,
-         "min": None, "avg": None, "max": None, "jitter": None}
+    r = {
+        "loss": float(loss.group(1)) if loss else 100.0,
+        "min": None,
+        "avg": None,
+        "max": None,
+        "jitter": None,
+    }
     if rtt:
         r["min"], r["avg"], r["max"], r["jitter"] = (float(x) for x in rtt.groups())
     return r
@@ -50,17 +57,24 @@ def parse_wifi(out):
     def grab(pattern, cast):
         m = re.search(pattern, out)
         return cast(m.group(1)) if m else None
-    return {"signal_dbm": grab(r"signal: (-?\d+) dBm", int),
-            "tx_mbps": grab(r"tx bitrate: ([\d.]+) MBit/s", float),
-            "freq_mhz": grab(r"freq: (\d+)", int),
-            "ssid": grab(r"SSID: (.+)", str)}
+
+    return {
+        "signal_dbm": grab(r"signal: (-?\d+) dBm", int),
+        "tx_mbps": grab(r"tx bitrate: ([\d.]+) MBit/s", float),
+        "freq_mhz": grab(r"freq: (\d+)", int),
+        "ssid": grab(r"SSID: (.+)", str),
+    }
 
 
 def parse_speedtest(out):
     d = json.loads(out)
     srv = d.get("server", {})
-    return {"down_mbps": d["download"] / 1e6, "up_mbps": d["upload"] / 1e6,
-            "ping_ms": d["ping"], "server": f"{srv.get('sponsor')} - {srv.get('name')}"}
+    return {
+        "down_mbps": d["download"] / 1e6,
+        "up_mbps": d["upload"] / 1e6,
+        "ping_ms": d["ping"],
+        "server": f"{srv.get('sponsor')} - {srv.get('name')}",
+    }
 
 
 def init_db(db):
@@ -69,14 +83,19 @@ def init_db(db):
 
 def run(cmd):
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=CMD_TIMEOUT_S)
+        # check=False: ping/mtr saem com erro quando há perda, e isso é dado, não falha.
+        p = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=CMD_TIMEOUT_S, check=False
+        )
         return p.stdout
     except (subprocess.TimeoutExpired, FileNotFoundError):
         return ""
 
 
 def ping(host, count):
-    return parse_ping(run(["ping", "-c", str(count), "-i", "0.2", "-W", "2", "-q", host]))
+    return parse_ping(
+        run(["ping", "-c", str(count), "-i", "0.2", "-W", "2", "-q", host])
+    )
 
 
 def dns_ms(i):
@@ -96,7 +115,12 @@ class OutageTracker:
     """Abre uma queda após `min_cycles` ciclos seguidos sem nenhum alvo externo respondendo."""
 
     def __init__(self, db, min_cycles, mtr=mtr, mtr_host="1.1.1.1"):
-        self.db, self.min_cycles, self.mtr, self.mtr_host = db, min_cycles, mtr, mtr_host
+        self.db, self.min_cycles, self.mtr, self.mtr_host = (
+            db,
+            min_cycles,
+            mtr,
+            mtr_host,
+        )
         self.first_dead_ts, self.dead_count, self.open_rowid = None, 0, None
 
     def update(self, ts, all_external_dead):
@@ -105,14 +129,23 @@ class OutageTracker:
                 self.first_dead_ts = ts
             self.dead_count += 1
             if self.dead_count == self.min_cycles and self.open_rowid is None:
-                cur = self.db.execute("insert into outages(started_at, mtr) values (?, ?)",
-                                      (self.first_dead_ts, self.mtr(self.mtr_host)))
+                cur = self.db.execute(
+                    "insert into outages(started_at, mtr) values (?, ?)",
+                    (self.first_dead_ts, self.mtr(self.mtr_host)),
+                )
                 self.open_rowid = cur.lastrowid
         else:
             if self.open_rowid is not None:
-                dur = int((datetime.fromisoformat(ts) - datetime.fromisoformat(self.first_dead_ts)).total_seconds())
-                self.db.execute("update outages set ended_at=?, duration_s=? where rowid=?",
-                                (ts, dur, self.open_rowid))
+                dur = int(
+                    (
+                        datetime.fromisoformat(ts)
+                        - datetime.fromisoformat(self.first_dead_ts)
+                    ).total_seconds()
+                )
+                self.db.execute(
+                    "update outages set ended_at=?, duration_s=? where rowid=?",
+                    (ts, dur, self.open_rowid),
+                )
             self.dead_count, self.open_rowid = 0, None
         self.db.commit()
 
@@ -143,9 +176,24 @@ def main():
             p = ping(host, cfg["pings_per_cycle"])
             if not is_gw:
                 external_loss.append(p["loss"])
-            db.execute("insert into samples values (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                       (ts, host, is_gw, p["loss"], p["min"], p["avg"], p["max"], p["jitter"],
-                        wifi["signal_dbm"], wifi["tx_mbps"], wifi["freq_mhz"], wifi["ssid"], dns))
+            db.execute(
+                "insert into samples values (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    ts,
+                    host,
+                    is_gw,
+                    p["loss"],
+                    p["min"],
+                    p["avg"],
+                    p["max"],
+                    p["jitter"],
+                    wifi["signal_dbm"],
+                    wifi["tx_mbps"],
+                    wifi["freq_mhz"],
+                    wifi["ssid"],
+                    dns,
+                ),
+            )
         db.commit()
         tracker.update(ts, bool(external_loss) and all(x >= 100 for x in external_loss))
 
@@ -154,8 +202,17 @@ def main():
             next_speedtest = time.monotonic() + cfg["speedtest_minutes"] * 60
             try:
                 s = parse_speedtest(run(["speedtest", "--json"]))
-                db.execute("insert into speedtests values (?,?,?,?,?,?)",
-                           (ts, s["down_mbps"], s["up_mbps"], s["ping_ms"], s["server"], wifi["signal_dbm"]))
+                db.execute(
+                    "insert into speedtests values (?,?,?,?,?,?)",
+                    (
+                        ts,
+                        s["down_mbps"],
+                        s["up_mbps"],
+                        s["ping_ms"],
+                        s["server"],
+                        wifi["signal_dbm"],
+                    ),
+                )
                 db.commit()
             except (ValueError, KeyError) as e:
                 print(f"{ts} speedtest falhou: {e}", file=sys.stderr)

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Bloqueia segredo no commit. Vale para qualquer linguagem.
+# Formatação, lint e testes: estrutura.sh, com os comandos do README.
+set -euo pipefail
+
+sensiveis="$(git diff --cached --name-only --diff-filter=ACMR \
+  | grep -E '(^|/)(\.env(\.[^/]*)?|[^/]*\.(pem|key|p12|pfx)|id_(rsa|ecdsa|ed25519))$' \
+  | grep -vE '(^|/)\.env\.example$' || true)"
+if [ -n "$sensiveis" ]; then
+  echo "[ERRO] Arquivos sensíveis no commit:"
+  echo "$sensiveis"
+  echo "       Remova com 'git rm --cached <arquivo>' e adicione-os ao .gitignore."
+  exit 1
+fi
+echo "[OK] Nenhum segredo no commit."

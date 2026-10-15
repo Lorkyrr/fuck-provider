@@ -1,0 +1,28 @@
+# Gerado por estrutura.sh a partir do README. Repete no GitHub os comandos locais.
+# Ferramentas de linguagens sem passo de preparo abaixo: instale-as aqui.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verificacoes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar Python
+        run: |
+          python3 -m pip install ruff pytest pytest-cov pip-audit deptry
+          if [ -f pyproject.toml ]; then python3 -m pip install -e .; fi
+      - name: formatar (ruff)
+        run: |
+          ruff format --check .
+      - name: lint (ruff)
+        run: |
+          ruff check .

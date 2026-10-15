@@ -1,0 +1,27 @@
+__pycache__/
+*.pyc
+monitor.db*
+samples.csv
+relatorio.html
+
+
+
+# estrutura.sh:inicio
+# Diretrizes e documentos particulares
+estrutura.sh
+Diretrizes-de-Codigo.md
+Diretrizes-de-Codigo.pdf
+Conformidade-Diretrizes.md
+agentes.md
+KEngine-*.md
+Learning-Path-Production-Ready.md
+.venv/
+# Segredos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+# estrutura.sh:fim

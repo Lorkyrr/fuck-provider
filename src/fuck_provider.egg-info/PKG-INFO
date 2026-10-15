@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: fuck_provider
+Version: 0.1.0
+Summary: Monitor contínuo da qualidade da internet (ping, jitter, perda, quedas, velocidade e sinal Wi-Fi) que gera evidência para denúncias de serviço mal prestado à Anatel.
+Requires-Python: >=3.10
+License-File: LICENSE
+Dynamic: license-file
