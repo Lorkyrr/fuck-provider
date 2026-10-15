@@ -1,0 +1,14 @@
+[Unit]
+Description=fuck-provider: monitor de qualidade da internet
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=%h/Documentos/Coding/fuck-provider
+# O inibidor impede o notebook de suspender enquanto o monitor roda; sem ele, a coleta teria buracos.
+ExecStart=/usr/bin/systemd-inhibit --what=sleep --who=fuck-provider --why="medindo a internet" /usr/bin/python3 -u monitor.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

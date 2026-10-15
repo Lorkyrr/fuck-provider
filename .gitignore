@@ -1,0 +1,38 @@
+__pycache__/
+*.pyc
+monitor.db*
+samples.csv
+relatorio.html
+
+# Aparato gerado pelo estrutura.sh que não é necessário para rodar o monitor.
+# Fica só no disco; o script recria o que faltar. Fora do bloco abaixo, que ele regrava.
+.githooks/
+.github/
+.planning/
+docs/
+architecture-docs/
+CHANGELOG.md
+pyproject.toml
+src/
+tests/
+*.egg-info/
+
+# estrutura.sh:inicio
+# Diretrizes e documentos particulares
+estrutura.sh
+Diretrizes-de-Codigo.md
+Diretrizes-de-Codigo.pdf
+Conformidade-Diretrizes.md
+agentes.md
+KEngine-*.md
+Learning-Path-Production-Ready.md
+.venv/
+# Segredos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+# estrutura.sh:fim

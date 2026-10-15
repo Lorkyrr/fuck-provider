@@ -1,0 +1,11 @@
+interface = "wlp3s0"
+db = "monitor.db"
+cycle_seconds = 60
+pings_per_cycle = 20
+speedtest_minutes = 30
+outage_min_cycles = 2
+targets = ["1.1.1.1", "8.8.8.8", "200.160.2.3"]  # 200.160.2.3 = NIC.br (Brasil)
+
+# Velocidade contratada (Mbps): preencha com os valores do SEU plano.
+plan_down_mbps = 100
+plan_up_mbps = 50
